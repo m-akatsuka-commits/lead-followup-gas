@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #f0f4f8; font-family: sans-serif; }
+    .nav-pills .nav-link.active { background-color: #2563eb; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .table-responsive { max-height: 500px; overflow-y: auto; }
+    .preview-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; white-space: pre-wrap; font-size: 0.95rem; }
+    .column-badge { background-color: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; font-size: 0.85em; }
+    .meta-item { border-left: 4px solid #cbd5e1; padding-left: 10px; margin-bottom: 10px; }
+    .sender-alert { border-left: 4px solid #ef4444; background-color: #fef2f2; }
+  </style>
+</head>
+<body class="p-4 md:p-8 text-slate-700">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-8 bg-white p-6 rounded-xl shadow-sm">
+      <h1 class="text-2xl font-bold text-blue-700">ナレフル追客管理システム <span class="text-slate-400 text-sm font-normal">v3.1</span></h1>
+      <div id="global-loader" class="spinner-border spinner-border-sm text-primary" style="display:none"></div>
+    </div>
+
+    <!-- 担当者選択プロフィール -->
+    <div class="card p-4 mb-6 sender-alert">
+      <div class="row align-items-center">
+        <div class="col-md-7">
+          <h5 class="font-bold text-red-700 mb-1">【必須】送信プロフィールの選択</h5>
+          <p class="text-xs text-slate-500 mb-0">選択した内容が名乗り・署名・返信先に反映されます。</p>
+        </div>
+        <div class="col-md-5">
+          <select id="globalStaffSelect" class="form-select border-red-300 font-bold text-lg" onchange="updateBatchBtn()">
+            <option value="">-- あなたの名前を選択 --</option>
+            <option value="西山">西山 緋紗子</option>
+            <option value="伊藤">伊藤 真理子</option>
+            <option value="箱崎">箱崎 美香</option>
+            <option value="村上">村上 絢香</option>
+            <option value="藤野">藤野 泰</option>
+            <option value="赤塚">赤塚 真央</option>
+            <option value="久野">久野 なつみ</option>
+            <option value="江島">江島 律子</option>
+            <option value="佐藤">佐藤 葵</option>
+            <option value="吉住">吉住 珠里</option>
+            <option value="時田">時田 温子</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <ul class="nav nav-pills mb-6 gap-2" id="pills-tab">
+      <li class="nav-item"><button class="nav-link active px-6 font-bold" id="tab-send-btn" data-bs-toggle="pill" data-bs-target="#tab-send">送信管理</button></li>
+      <li class="nav-item"><button class="nav-link px-6 font-bold" id="tab-preview-btn" data-bs-toggle="pill" data-bs-target="#tab-preview">文面確認</button></li>
+      <li class="nav-item"><button class="nav-link px-6 font-bold bg-slate-200 text-slate-600" id="tab-guide-btn" data-bs-toggle="pill" data-bs-target="#tab-guide">操作ガイド</button></li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="tab-send">
+        <div class="card p-6 bg-white">
+          <div class="row g-3 mb-6 align-items-end">
+            <div class="col-md-2"><label class="form-label font-bold">開始行</label><input type="number" id="startRow" class="form-control" value="2"></div>
+            <div class="col-md-2"><label class="form-label font-bold">終了行</label><input type="number" id="endRow" class="form-control" value="400"></div>
+            <div class="col-md-3"><button class="btn btn-primary w-100 py-2 font-bold" onclick="fetchData()">データ読込</button></div>
+            <div class="col-md-5"><button id="batchSendBtn" class="btn btn-success w-100 py-2 font-bold text-lg" onclick="execBatchSend()" disabled>選択項目を一括送信</button></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th style="width:40px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
+                  <th>行(項番)</th>
+                  <th>会社名</th>
+                  <th>顧客区分 / 種類</th>
+                  <th>ステータス</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="listBody"><tr><td colspan="6" class="text-center py-12 text-slate-400">読み込みを開始してください（対応終了済みは表示されません）</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="tab-preview">
+        <div class="card p-6 bg-white">
+          <h2 class="text-xl font-bold mb-6 border-b pb-4">メール送付プレビュー</h2>
+          <div id="previewArea">
+            <p class="text-center text-slate-400 py-12">「確認」ボタンを押すと内容が表示されます。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="tab-guide">
+        <div class="card p-8 bg-white space-y-4">
+          <h2 class="text-xl font-bold text-blue-800 border-b pb-2">📌 v3.1 アップデート内容</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-blue-50 p-4 rounded">
+              <h5 class="font-bold">送信先確認機能</h5>
+              <p class="text-sm">プレビュー画面で実際の送信先メールアドレスが表示されるようになりました。管理シートとの不整合を即座に確認できます。</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded">
+              <h5 class="font-bold">スタッフリスト更新</h5>
+              <p class="text-sm text-green-800">最新の担当者リスト（佐藤、吉住、時田）に対応しました。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fetchData() {
+      const s = document.getElementById('startRow').value;
+      const e = document.getElementById('endRow').value;
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(drawList).getRowData(Number(s), Number(e));
+    }
+
+    function drawList(rows) {
+      document.getElementById('global-loader').style.display = 'none';
+      document.getElementById('selectAll').checked = false;
+      updateBatchBtn();
+
+      const body = document.getElementById('listBody');
+      if (rows.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-slate-400">指定範囲に対応が必要なデータはありません</td></tr>';
+        return;
+      }
+
+      body.innerHTML = rows.map(r => {
+        const btnLabel = r.nextStep === 2 ? '追客2送信' : (r.nextStep === 3 ? '追客3送信' : '追客4送信');
+        const badgeClass = r.nextStep === 2 ? 'bg-warning text-dark' : (r.nextStep === 3 ? 'bg-info text-dark' : 'bg-danger text-white');
+        
+        return `<tr>
+          <td><input type="checkbox" class="row-checkbox" value="${r.rowNum}" data-step="${r.nextStep}" onchange="updateBatchBtn()"></td>
+          <td>${r.rowNum} <small class="text-muted">(${r.itemNum})</small></td>
+          <td><strong>${r.company || '-'}</strong></td>
+          <td><span class="text-xs text-slate-500">${r.segment}</span><br><span class="text-xs text-blue-600 font-bold">${r.type}</span></td>
+          <td><span class="badge ${badgeClass}">${r.status}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="loadPreview(${r.rowNum}, ${r.nextStep})">確認</button>
+            <button class="btn btn-sm btn-success" onclick="execSend(${r.rowNum}, ${r.nextStep})">${btnLabel}</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function toggleSelectAll(master) {
+      const checkboxes = document.querySelectorAll('.row-checkbox');
+      checkboxes.forEach(cb => cb.checked = master.checked);
+      updateBatchBtn();
+    }
+
+    function updateBatchBtn() {
+      const staff = document.getElementById('globalStaffSelect').value;
+      const checked = document.querySelectorAll('.row-checkbox:checked');
+      document.getElementById('batchSendBtn').disabled = (checked.length === 0 || staff === "");
+    }
+
+    async function execBatchSend() {
+      const staff = document.getElementById('globalStaffSelect').value;
+      const selected = document.querySelectorAll('.row-checkbox:checked');
+      if (!staff) { alert('プロフィールを選択してください'); return; }
+      if (!confirm(`${staff} として ${selected.length}件を一括送信します。よろしいですか？`)) return;
+
+      document.getElementById('global-loader').style.display = 'block';
+      let successCount = 0;
+      for (let cb of selected) {
+        const row = Number(cb.value);
+        const step = Number(cb.dataset.step);
+        try {
+          await new Promise((resolve, reject) => {
+            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).processMail(row, step, staff);
+          });
+          successCount++;
+        } catch (e) { console.error(e); }
+      }
+      alert(`${successCount}件の送信を完了しました。`);
+      fetchData();
+    }
+
+    function loadPreview(n, step) {
+      const staff = document.getElementById('globalStaffSelect').value;
+      if (!staff) { alert('先にプロフィールを選択してください'); return; }
+      const tab = new bootstrap.Tab(document.getElementById('tab-preview-btn'));
+      tab.show();
+      document.getElementById('previewArea').innerHTML = '読込中...';
+      google.script.run.withSuccessHandler(showPreview).getPreview(n, step, staff);
+    }
+
+    function showPreview(d) {
+      const stepLabel = d.step === 2 ? '追客2' : (d.step === 3 ? '追客3' : '追客4');
+      document.getElementById('previewArea').innerHTML = `
+        <div class="row mb-6 bg-slate-50 p-4 rounded-lg">
+          <div class="col-md-4">
+            <div class="meta-item"><label class="text-xs font-bold text-slate-400 uppercase">送信元 (From)</label><div class="font-bold text-blue-600">${d.from}</div></div>
+            <div class="meta-item"><label class="text-xs font-bold text-slate-400 uppercase">ステップ</label><div class="font-bold text-red-600">${stepLabel}</div></div>
+          </div>
+          <div class="col-md-4">
+            <div class="meta-item"><label class="text-xs font-bold text-slate-400 uppercase">宛先 / 会社</label><div class="font-bold">${d.company} / ${d.contact}様</div></div>
+            <div class="meta-item"><label class="text-xs font-bold text-slate-400 uppercase">送信先アドレス (Recipient)</label><div class="font-bold text-blue-700 bg-blue-50 px-1 rounded">${d.to}</div></div>
+          </div>
+          <div class="col-md-4">
+            <div class="meta-item"><label class="text-xs font-bold text-slate-400 uppercase">返信先 (Reply-To)</label><div class="font-bold">${d.staffEmail}</div></div>
+            <div class="meta-item text-end">
+               <span class="badge ${d.isReskilling ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${d.isReskilling ? 'リスキリング専用' : '通常'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="mb-4"><label class="text-xs font-bold text-slate-400 uppercase">件名</label><div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded font-bold text-blue-900">${d.subject}</div></div>
+        <div class="mb-4"><label class="text-xs font-bold text-slate-400 uppercase">本文</label><div class="preview-box border-dashed border-2">${d.body}</div></div>
+        <div class="mb-4 text-xs text-slate-400 border-t pt-4">--- 署名 ---<br>${d.signature.replace(/\n/g, '<br>')}</div>
+      `;
+    }
+
+    function execSend(n, step) {
+      const staff = document.getElementById('globalStaffSelect').value;
+      if (!staff) { alert('プロフィールを選択してください'); return; }
+      if (!confirm('個別に送信します。よろしいですか？')) return;
+      document.getElementById('global-loader').style.display = 'block';
+      google.script.run.withSuccessHandler(res => { alert(res); fetchData(); }).processMail(n, step, staff);
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
